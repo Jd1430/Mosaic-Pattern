@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blockprint — Photo to Mosaic Pattern</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #101b30;
+    --panel: #17233d;
+    --panel-2: #1d2c4a;
+    --line: #2b3b5e;
+    --amber: #f2a93b;
+    --amber-dim: #a9762b;
+    --text: #eef1f7;
+    --muted: #7e8fb3;
+    --mono: 'IBM Plex Mono', monospace;
+    --display: 'Space Grotesk', sans-serif;
+    --body: 'Inter', sans-serif;
+  }
+  *{ box-sizing: border-box; }
+  body{
+    margin:0;
+    background: var(--bg);
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 28px 28px;
+    background-attachment: fixed;
+    color: var(--text);
+    font-family: var(--body);
+    min-height: 100vh;
+    padding: 20px 16px 60px;
+  }
+  .app{ max-width: 880px; margin: 0 auto; }
+
+  header{ margin-bottom: 22px; }
+  .eyebrow{
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin: 0 0 6px;
+  }
+  h1{
+    font-family: var(--display);
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0 0 8px;
+    line-height: 1.15;
+  }
+  header p{
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+    max-width: 56ch;
+  }
+
+  .panel{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  .panel h2{
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 14px;
+  }
+
+  #dropzone{
+    display: block;
+    border: 1.5px dashed var(--line);
+    border-radius: 8px;
+    padding: 26px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  #dropzone:hover, #dropzone.drag{
+    border-color: var(--amber);
+    background: rgba(242,169,59,0.05);
+  }
+  #dropzone .icon{ font-size: 22px; margin-bottom: 8px; }
+  #dropzone .main-txt{ font-size: 14px; color: var(--text); }
+  #dropzone .sub-txt{ font-size: 12px; color: var(--muted); margin-top: 4px; }
+  #fileInput{ display:none; }
+  #previewWrap{ display:none; align-items:center; gap:12px; }
+  #previewWrap img{ width:64px; height:64px; object-fit:cover; border-radius:6px; border:1px solid var(--line); }
+  #previewWrap .fname{ font-size: 13px; color: var(--text); word-break: break-all; }
+  #previewWrap .change{ font-family: var(--mono); font-size: 11px; color: var(--amber); cursor:pointer; margin-top:4px; }
+
+  .row{ display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+  .row:last-child{ margin-bottom:0; }
+  .row-label{
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-size: 13px;
+  }
+  .row-label span:last-child{
+    font-family: var(--mono);
+    color: var(--amber);
+    font-size: 13px;
+  }
+  input[type=range]{
+    -webkit-appearance:none;
+    width:100%;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--line);
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:16px; height:16px;
+    border-radius:50%;
+    background: var(--amber);
+    cursor:pointer;
+    border: 2px solid var(--bg);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:16px; height:16px;
+    border-radius:50%;
+    background: var(--amber);
+    cursor:pointer;
+    border: 2px solid var(--bg);
+  }
+
+  button.primary{
+    width:100%;
+    padding: 13px;
+    border-radius: 8px;
+    border: none;
+    background: var(--amber);
+    color: #1a1305;
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  button.primary:disabled{
+    background: var(--amber-dim);
+    color: #2a2416;
+    cursor: not-allowed;
+  }
+  button.secondary{
+    padding: 9px 14px;
+    border-radius: 7px;
+    border: 1px solid var(--line);
+    background: var(--panel-2);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    cursor: pointer;
+  }
+  button.secondary:hover{ border-color: var(--amber); }
+
+  .seg{ display:flex; gap:8px; flex-wrap: wrap; }
+  .seg-btn{
+    flex: 1 1 auto;
+    min-width: 100px;
+    padding: 9px 8px;
+    border-radius: 7px;
+    border: 1px solid var(--line);
+    background: var(--panel-2);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    text-align:center;
+  }
+  .seg-btn.active{
+    border-color: var(--amber);
+    color: var(--amber);
+    background: rgba(242,169,59,0.08);
+  }
+
+  #status{
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 10px;
+    min-height: 16px;
+  }
+
+  #resultSection{ display:none; }
+  .canvas-scroll{
+    overflow: auto;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #0b1526;
+    max-height: 60vh;
+  }
+  .canvas-scroll canvas{ display:block; }
+
+  .toolbar{
+    display:flex; gap:8px; margin-top: 12px; flex-wrap: wrap;
+  }
+
+  .stat-line{
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 12px;
+    display:flex; gap:18px; flex-wrap:wrap;
+  }
+  .stat-line b{ color: var(--text); }
+
+  #legend{
+    margin-top: 6px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+  }
+  .legend-item{
+    display:flex; align-items:center; gap:8px;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 7px 9px;
+  }
+  .swatch{
+    width:20px; height:20px; border-radius:4px; flex-shrink:0;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  .legend-item .sym{ font-family: var(--mono); font-size:11px; color: var(--muted); }
+  .legend-item .cnt{ font-family: var(--mono); font-size:12px; margin-left:auto; }
+
+  footer{
+    text-align:center;
+    color: var(--muted);
+    font-size: 11px;
+    font-family: var(--mono);
+    margin-top: 30px;
+  }
+
+  @media (max-width: 480px){
+    h1{ font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <p class="eyebrow">Pattern Generator — 001</p>
+    <h1>Turn a photo into a block-by-block mosaic pattern</h1>
+    <p>Upload an image, choose a grid resolution and a color count, and get a numbered pattern you could assemble square by square — the same idea behind photo diamond-painting kits.</p>
+  </header>
+
+  <section class="panel">
+    <h2>01 · Photo</h2>
+    <label id="dropzone" for="fileInput">
+      <div class="icon">🖼</div>
+      <div class="main-txt">Tap to choose a photo</div>
+      <div class="sub-txt">JPG or PNG · one clear subject works best</div>
+    </label>
+    <label id="previewWrap" for="fileInput">
+      <img id="previewImg" alt="preview">
+      <div>
+        <div class="fname" id="fname"></div>
+        <div class="change">Choose a different photo</div>
+      </div>
+    </label>
+    <input type="file" id="fileInput" accept="image/*">
+  </section>
+
+  <section class="panel">
+    <h2>02 · Grid settings</h2>
+    <div class="row">
+      <div class="row-label"><span>Grid width (columns)</span><span id="colsVal">140</span></div>
+      <input type="range" id="colsRange" min="20" max="320" value="140" step="1">
+      <div class="sub-txt" style="margin-top:2px;">Photos with several faces need 150+ to keep features recognizable. Higher = slower to build.</div>
+    </div>
+    <div class="row">
+      <div class="row-label"><span>Grid height (rows)</span><span id="rowsVal">Auto</span></div>
+      <input type="range" id="rowsRange" min="20" max="400" value="90" step="1" disabled>
+      <label style="display:flex; align-items:center; gap:8px; margin-top:8px; font-size:12px; cursor:pointer;">
+        <input type="checkbox" id="autoRowsCheckbox" checked style="width:14px; height:14px;">
+        <span>Auto — match the photo's proportions</span>
+      </label>
+      <div class="sub-txt" style="margin-top:4px;">Uncheck to set rows independently — useful for a fixed grid size, but the pattern will stretch if it doesn't match the photo's shape.</div>
+    </div>
+    <div class="row">
+      <div class="row-label"><span>Color style</span></div>
+      <div class="seg" id="paletteModeSeg">
+        <button type="button" class="seg-btn active" data-mode="auto">Auto — best-fit</button>
+        <button type="button" class="seg-btn" data-mode="original">Original</button>
+        <button type="button" class="seg-btn" data-mode="vintage">Vintage</button>
+        <button type="button" class="seg-btn" data-mode="popart">Pop Art</button>
+        <button type="button" class="seg-btn" data-mode="fixed">Craft palette (30)</button>
+        <button type="button" class="seg-btn" data-mode="bw">Black &amp; White</button>
+        <button type="button" class="seg-btn" data-mode="custom">Custom colors</button>
+      </div>
+    </div>
+    <div class="row" id="colorCountRow">
+      <div class="row-label"><span>Palette size (colors)</span><span id="colorsVal">12</span></div>
+      <input type="range" id="colorsRange" min="4" max="24" value="12" step="1">
+      <div class="sub-txt" id="suggestionText" style="display:none; margin-top:6px;">
+        Suggested for this photo: <b id="suggestedCount">—</b> colors
+        <button type="button" class="secondary" id="applySuggestionBtn" style="padding:3px 9px; font-size:10px; margin-left:8px; vertical-align:middle;">Use this</button>
+      </div>
+    </div>
+    <div class="row" id="bwThresholdRow" style="display:none;">
+      <div class="row-label"><span>Black / white threshold</span><span id="bwThresholdVal">128</span></div>
+      <input type="range" id="bwThresholdRange" min="1" max="254" value="128" step="1">
+      <div class="sub-txt" style="margin-top:4px;">Lower = more black, higher = more white</div>
+    </div>
+    <div class="row" id="customPaletteRow" style="display:none;">
+      <div class="row-label"><span>Number of custom colors</span><span id="customCountVal">4</span></div>
+      <input type="range" id="customCountRange" min="2" max="24" value="4" step="1">
+      <div class="sub-txt" style="margin:6px 0 8px;">Tap a swatch to pick its exact color</div>
+      <div id="customSwatches" style="display:flex; flex-wrap:wrap; gap:10px;"></div>
+    </div>
+    <button class="primary" id="generateBtn" disabled>Upload a photo first</button>
+    <div id="status"></div>
+  </section>
+
+  <section class="panel" id="resultSection">
+    <h2>03 · Pattern</h2>
+    <div class="canvas-scroll">
+      <canvas id="outputCanvas"></canvas>
+    </div>
+    <div class="toolbar">
+      <button class="secondary" id="toggleViewBtn">Show block numbers</button>
+      <button class="secondary" id="downloadBtn">Download pattern (PNG)</button>
+      <button class="secondary" id="downloadBlankPdfBtn">Blank template — PDF</button>
+      <button class="secondary" id="downloadBlankWordBtn">Blank template — Word</button>
+    </div>
+    <div class="row" style="margin-top:14px;">
+      <div class="row-label"><span>Print paper size</span></div>
+      <div class="seg" id="paperSizeSeg">
+        <button type="button" class="seg-btn active" data-size="A4">A4</button>
+        <button type="button" class="seg-btn" data-size="A3">A3</button>
+      </div>
+      <label style="display:flex; align-items:center; gap:8px; margin-top:12px; font-size:13px; cursor:pointer;">
+        <input type="checkbox" id="includeLabelsCheckbox" style="width:16px; height:16px;">
+        <span>Include title/instructions on the page (unchecked = clean grid, fills the whole sheet, ready to print and start coloring)</span>
+      </label>
+    </div>
+    <div class="row">
+      <div class="row-label"><span>Split pattern across sheets</span></div>
+      <div style="display:flex; gap:10px;">
+        <div style="flex:1;">
+          <div class="sub-txt" style="margin-bottom:4px;">Sheets across</div>
+          <input type="number" id="sheetColsInput" min="1" max="4" value="1"
+            style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--line); background:var(--panel-2); color:var(--text); font-family:var(--mono);">
+        </div>
+        <div style="flex:1;">
+          <div class="sub-txt" style="margin-bottom:4px;">Sheets down</div>
+          <input type="number" id="sheetRowsInput" min="1" max="4" value="1"
+            style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--line); background:var(--panel-2); color:var(--text); font-family:var(--mono);">
+        </div>
+      </div>
+      <div class="sub-txt" id="sheetBreakdownText" style="margin-top:8px;">Total sheets: 1 — join not needed at 1×1</div>
+      <div id="sheetDownloadList" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;"></div>
+    </div>
+    <div class="toolbar">
+      <button class="secondary" id="printBtn" style="flex:1;">Print instruction sheet (pattern + blank template)</button>
+    </div>
+    <div class="stat-line">
+      <span>Grid: <b id="gridDim">—</b></span>
+      <span>Total blocks: <b id="totalBlocks">—</b></span>
+      <span>Colors used: <b id="colorsUsed">—</b></span>
+    </div>
+    <h2 style="margin-top:20px;">Color legend &amp; block counts</h2>
+    <div id="legend"></div>
+  </section>
+
+  <footer>Runs entirely in your browser · nothing is uploaded anywhere</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(function(){
+  const fileInput = document.getElementById('fileInput');
+  const dropzone = document.getElementById('dropzone');
+  const previewWrap = document.getElementById('previewWrap');
+  const previewImg = document.getElementById('previewImg');
+  const fname = document.getElementById('fname');
+  const colsRange = document.getElementById('colsRange');
+  const colorsRange = document.getElementById('colorsRange');
+  const colsVal = document.getElementById('colsVal');
+  const colorsVal = document.getElementById('colorsVal');
+  const generateBtn = document.getElementById('generateBtn');
+  const statusEl = document.getElementById('status');
+  const resultSection = document.getElementById('resultSection');
+  const outputCanvas = document.getElementById('outputCanvas');
+  const toggleViewBtn = document.getElementById('toggleViewBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const gridDim = document.getElementById('gridDim');
+  const totalBlocks = document.getElementById('totalBlocks');
+  const colorsUsed = document.getElementById('colorsUsed');
+  const legendEl = document.getElementById('legend');
+
+  let loadedImage = null;
+  let lastResult = null; // { cols, rows, assignments, centroids, counts, symbols, names }
+  let showSymbols = false;
+  let paletteMode = 'auto';
+  const CELL_SIZE = 18;
+
+  // A standard 30-color craft palette, similar in spirit to the fixed swatch
+  // sets used in physical diamond-painting / mosaic kits. Names are generic
+  // craft-supply names, not tied to any specific manufacturer's color codes.
+  const CRAFT_PALETTE = [
+    { name: 'Snow White',      rgb: [250, 249, 246] },
+    { name: 'Bone',            rgb: [231, 221, 202] },
+    { name: 'Warm Grey',       rgb: [176, 168, 158] },
+    { name: 'Slate Grey',      rgb: [112, 116, 122] },
+    { name: 'Charcoal',        rgb: [58, 58, 60]   },
+    { name: 'Onyx Black',      rgb: [20, 20, 22]   },
+    { name: 'Blush Pink',      rgb: [236, 179, 180] },
+    { name: 'Rose',            rgb: [214, 106, 126] },
+    { name: 'Crimson',         rgb: [176, 34, 52]  },
+    { name: 'Burgundy',        rgb: [98, 24, 38]   },
+    { name: 'Coral',           rgb: [235, 122, 92]  },
+    { name: 'Sunset Orange',   rgb: [222, 105, 44]  },
+    { name: 'Amber',           rgb: [227, 160, 55]  },
+    { name: 'Sunflower Yellow',rgb: [240, 202, 60]  },
+    { name: 'Butter Yellow',   rgb: [244, 227, 155] },
+    { name: 'Olive',           rgb: [126, 124, 62]  },
+    { name: 'Moss Green',      rgb: [96, 122, 65]   },
+    { name: 'Emerald',         rgb: [43, 122, 91]   },
+    { name: 'Mint',            rgb: [156, 214, 189] },
+    { name: 'Teal',            rgb: [37, 112, 115]  },
+    { name: 'Sky Blue',        rgb: [131, 187, 219] },
+    { name: 'Cornflower',      rgb: [92, 133, 199]  },
+    { name: 'Royal Blue',      rgb: [42, 73, 156]   },
+    { name: 'Navy',            rgb: [24, 38, 78]    },
+    { name: 'Periwinkle',      rgb: [151, 148, 214] },
+    { name: 'Violet',          rgb: [111, 74, 152]  },
+    { name: 'Plum',            rgb: [83, 43, 79]    },
+    { name: 'Terracotta',      rgb: [176, 92, 65]   },
+    { name: 'Sand',            rgb: [201, 174, 130] },
+    { name: 'Espresso',        rgb: [66, 46, 38]    }
+  ];
+
+  const KMEANS_MODES = ['auto', 'original', 'vintage', 'popart'];
+
+  const paletteModeSeg = document.getElementById('paletteModeSeg');
+  const colorCountRow = document.getElementById('colorCountRow');
+  const bwThresholdRow = document.getElementById('bwThresholdRow');
+  const customPaletteRow = document.getElementById('customPaletteRow');
+  paletteModeSeg.addEventListener('click', (e) => {
+    const btn = e.target.closest('.seg-btn');
+    if (!btn) return;
+    paletteMode = btn.dataset.mode;
+    [...paletteModeSeg.children].forEach(b => b.classList.toggle('active', b === btn));
+    colorCountRow.style.display = KMEANS_MODES.includes(paletteMode) ? 'flex' : 'none';
+    bwThresholdRow.style.display = paletteMode === 'bw' ? 'flex' : 'none';
+    customPaletteRow.style.display = paletteMode === 'custom' ? 'flex' : 'none';
+    if (paletteMode === 'custom') renderCustomSwatches();
+    if (KMEANS_MODES.includes(paletteMode) && loadedImage){
+      setTimeout(() => analyzeSuggestedPalette(), 10);
+    }
+  });
+
+  const bwThresholdRange = document.getElementById('bwThresholdRange');
+  const bwThresholdVal = document.getElementById('bwThresholdVal');
+  bwThresholdRange.addEventListener('input', () => bwThresholdVal.textContent = bwThresholdRange.value);
+
+  // A rotating set of distinct default hues, used to seed custom-color swatches.
+  const DEFAULT_CUSTOM_HUES = [0, 210, 45, 140, 280, 20, 190, 320, 90, 250, 10, 160];
+  function defaultCustomColorHex(i){
+    const hue = DEFAULT_CUSTOM_HUES[i % DEFAULT_CUSTOM_HUES.length];
+    const [r,g,b] = hslToRgb(hue/360, 0.55, 0.5);
+    return '#' + [r,g,b].map(v => Math.round(v).toString(16).padStart(2,'0')).join('');
+  }
+
+  const customCountRange = document.getElementById('customCountRange');
+  const customCountVal = document.getElementById('customCountVal');
+  let customColorValues = [];
+  function renderCustomSwatches(){
+    const count = parseInt(customCountRange.value, 10);
+    customCountVal.textContent = count;
+    const container = document.getElementById('customSwatches');
+    const prev = customColorValues;
+    customColorValues = [];
+    container.innerHTML = '';
+    for (let i=0; i<count; i++){
+      const val = prev[i] || defaultCustomColorHex(i);
+      customColorValues.push(val);
+      const wrap = document.createElement('label');
+      wrap.style.cssText = 'display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer;';
+      const input = document.createElement('input');
+      input.type = 'color';
+      input.value = val;
+      input.style.cssText = 'width:38px; height:38px; border:1px solid var(--line); border-radius:6px; padding:0; background:none; cursor:pointer;';
+      input.addEventListener('input', () => { customColorValues[i] = input.value; });
+      const label = document.createElement('span');
+      label.textContent = symbolFor(i);
+      label.style.cssText = 'font-family:var(--mono); font-size:10px; color:var(--muted);';
+      wrap.appendChild(input);
+      wrap.appendChild(label);
+      container.appendChild(wrap);
+    }
+  }
+  customCountRange.addEventListener('input', renderCustomSwatches);
+  renderCustomSwatches();
+
+  function hexToRgb(hex){
+    const clean = hex.replace('#','');
+    return [
+      parseInt(clean.substring(0,2),16),
+      parseInt(clean.substring(2,4),16),
+      parseInt(clean.substring(4,6),16)
+    ];
+  }
+
+  colsVal.textContent = colsRange.value;
+  colorsVal.textContent = colorsRange.value;
+
+  const rowsRange = document.getElementById('rowsRange');
+  const rowsVal = document.getElementById('rowsVal');
+  const autoRowsCheckbox = document.getElementById('autoRowsCheckbox');
+
+  function syncAutoRows(){
+    if (!autoRowsCheckbox.checked || !loadedImage) return;
+    const aspect = loadedImage.height / loadedImage.width;
+    const computed = Math.min(400, Math.max(1, Math.round(parseInt(colsRange.value,10) * aspect)));
+    rowsRange.value = computed;
+    rowsVal.textContent = 'Auto (' + computed + ')';
+  }
+
+  autoRowsCheckbox.addEventListener('change', () => {
+    rowsRange.disabled = autoRowsCheckbox.checked;
+    if (autoRowsCheckbox.checked){
+      syncAutoRows();
+    } else {
+      rowsVal.textContent = rowsRange.value;
+    }
+  });
+
+  rowsRange.addEventListener('input', () => {
+    if (!autoRowsCheckbox.checked) rowsVal.textContent = rowsRange.value;
+  });
+
+  colsRange.addEventListener('input', () => { colsVal.textContent = colsRange.value; syncAutoRows(); });
+  colorsRange.addEventListener('input', () => colorsVal.textContent = colorsRange.value);
+
+  ['dragover','dragenter'].forEach(evt => {
+    dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.add('drag'); });
+  });
+  ['dragleave','drop'].forEach(evt => {
+    dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.remove('drag'); });
+  });
+  dropzone.addEventListener('drop', e => {
+    const f = e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  });
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) handleFile(fileInput.files[0]);
+  });
+
+  function handleFile(file){
+    if (!file.type.startsWith('image/')) {
+      statusEl.textContent = 'Please choose an image file.';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        loadedImage = img;
+        previewImg.src = e.target.result;
+        fname.textContent = file.name;
+        dropzone.style.display = 'none';
+        previewWrap.style.display = 'flex';
+        generateBtn.disabled = false;
+        generateBtn.textContent = 'Generate pattern';
+        document.getElementById('suggestionText').style.display = 'none';
+        syncAutoRows();
+        statusEl.textContent = 'Analyzing photo colors…';
+        setTimeout(() => {
+          analyzeSuggestedPalette();
+          statusEl.textContent = '';
+        }, 20);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  generateBtn.addEventListener('click', () => {
+    if (!loadedImage) return;
+    generateBtn.disabled = true;
+    generateBtn.textContent = 'Building pattern…';
+    statusEl.textContent = 'Sampling colors and clustering palette…';
+    // Let the UI paint before the heavy work runs
+    setTimeout(() => {
+      try{
+        buildPattern();
+        statusEl.textContent = 'Done.';
+      } catch(err){
+        statusEl.textContent = 'Something went wrong: ' + err.message;
+      }
+      generateBtn.disabled = false;
+      generateBtn.textContent = 'Regenerate pattern';
+    }, 30);
+  });
+
+  function dist2(a, b){
+    const dr = a[0]-b[0], dg = a[1]-b[1], db = a[2]-b[2];
+    return dr*dr + dg*dg + db*db;
+  }
+
+  function kmeans(colors, k, iterations){
+    let centroids = [];
+    centroids.push(colors[Math.floor(Math.random()*colors.length)]);
+    const sampleSize = Math.min(colors.length, 1500);
+    while (centroids.length < k){
+      let best = null, bestDist = -1;
+      for (let i=0;i<sampleSize;i++){
+        const c = colors[Math.floor(Math.random()*colors.length)];
+        let minDist = Infinity;
+        for (const ct of centroids){
+          const d = dist2(c, ct);
+          if (d < minDist) minDist = d;
+        }
+        if (minDist > bestDist){ bestDist = minDist; best = c; }
+      }
+      centroids.push(best.slice());
+    }
+    let assignments = new Array(colors.length).fill(0);
+    for (let iter=0; iter<iterations; iter++){
+      for (let i=0;i<colors.length;i++){
+        const c = colors[i];
+        let bestIdx = 0, bestDist = Infinity;
+        for (let j=0;j<centroids.length;j++){
+          const d = dist2(c, centroids[j]);
+          if (d < bestDist){ bestDist = d; bestIdx = j; }
+        }
+        assignments[i] = bestIdx;
+      }
+      const sums = centroids.map(() => [0,0,0,0]);
+      for (let i=0;i<colors.length;i++){
+        const a = assignments[i];
+        sums[a][0]+=colors[i][0];
+        sums[a][1]+=colors[i][1];
+        sums[a][2]+=colors[i][2];
+        sums[a][3]+=1;
+      }
+      for (let j=0;j<centroids.length;j++){
+        if (sums[j][3] > 0){
+          centroids[j] = [sums[j][0]/sums[j][3], sums[j][1]/sums[j][3], sums[j][2]/sums[j][3]];
+        }
+      }
+    }
+    return { centroids, assignments };
+  }
+
+  function computeWCSS(colors, centroids, assignments){
+    let wcss = 0;
+    for (let i=0;i<colors.length;i++){
+      wcss += dist2(colors[i], centroids[assignments[i]]);
+    }
+    return wcss;
+  }
+
+  // Suggests a palette size by running k-means at several candidate k's,
+  // then finding the "elbow" of the resulting error curve — the point past
+  // which adding more colors stops meaningfully reducing color error.
+  function suggestColorCount(colors){
+    const kCandidates = [4,6,8,10,12,14,16,18,20,24].filter(k => k <= colors.length);
+    if (kCandidates.length === 0) return 8;
+    const wcssList = kCandidates.map(k => {
+      const { centroids, assignments } = kmeans(colors, k, 6);
+      return computeWCSS(colors, centroids, assignments);
+    });
+    const kMin = kCandidates[0], kMax = kCandidates[kCandidates.length-1];
+    const wMin = Math.min(...wcssList), wMax = Math.max(...wcssList);
+    const nx = kCandidates.map(k => (k-kMin)/((kMax-kMin) || 1));
+    const ny = wcssList.map(w => (w-wMin)/((wMax-wMin) || 1));
+    const x1 = nx[0], y1 = ny[0], x2 = nx[nx.length-1], y2 = ny[ny.length-1];
+    const den = Math.sqrt((y2-y1)**2 + (x2-x1)**2) || 1;
+    let bestIdx = 0, bestDist = -1;
+    for (let i=0;i<nx.length;i++){
+      const num = Math.abs((y2-y1)*nx[i] - (x2-x1)*ny[i] + x2*y1 - y2*x1);
+      const d = num/den;
+      if (d > bestDist){ bestDist = d; bestIdx = i; }
+    }
+    return kCandidates[bestIdx];
+  }
+
+  // Different styles want different amounts of color, even for the same
+  // photo: Auto/Original aim to reproduce the photo closely (more colors),
+  // while Vintage and Pop Art are deliberately reductive looks that read
+  // better with fewer, bolder colors.
+  function styleAdjustSuggestion(rawSuggested, style){
+    let adjusted, lo, hi;
+    switch(style){
+      case 'original': adjusted = rawSuggested * 1.05; lo = 6; hi = 24; break;
+      case 'vintage':  adjusted = rawSuggested * 0.6;  lo = 5; hi = 14; break;
+      case 'popart':   adjusted = rawSuggested * 0.4;  lo = 4; hi = 9;  break;
+      case 'auto':
+      default:         adjusted = rawSuggested * 1.15; lo = 6; hi = 24; break;
+    }
+    return Math.max(lo, Math.min(hi, Math.round(adjusted)));
+  }
+
+  function analyzeSuggestedPalette(){
+    if (!loadedImage) return;
+    const aspect = loadedImage.height / loadedImage.width;
+    const sampleCols = 60;
+    const sampleRows = Math.max(1, Math.round(sampleCols * aspect));
+    const sampleColors = boxDownsample(loadedImage, sampleCols, sampleRows);
+    const styledColors = applyStyleTransform(sampleColors, paletteMode);
+    const rawSuggested = suggestColorCount(styledColors);
+    const suggested = styleAdjustSuggestion(rawSuggested, paletteMode);
+    document.getElementById('suggestedCount').textContent = suggested;
+    document.getElementById('suggestionText').style.display = 'block';
+    document.getElementById('applySuggestionBtn').dataset.value = suggested;
+  }
+
+  document.getElementById('applySuggestionBtn').addEventListener('click', () => {
+    const btn = document.getElementById('applySuggestionBtn');
+    const val = parseInt(btn.dataset.value, 10);
+    if (!val) return;
+    colorsRange.value = val;
+    colorsVal.textContent = val;
+  });
+
+  function symbolFor(i){
+    // A, B, ... Z, AA, AB, ...
+    let s = '';
+    i++;
+    while (i > 0){
+      const rem = (i-1) % 26;
+      s = String.fromCharCode(65+rem) + s;
+      i = Math.floor((i-1)/26);
+    }
+    return s;
+  }
+
+  function clampByte(v){ return Math.max(0, Math.min(255, v)); }
+  function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+
+  function rgbToHsl(r, g, b){
+    r/=255; g/=255; b/=255;
+    const max = Math.max(r,g,b), min = Math.min(r,g,b);
+    let h, s, l = (max+min)/2;
+    if (max === min){ h = s = 0; }
+    else{
+      const d = max-min;
+      s = l > 0.5 ? d/(2-max-min) : d/(max+min);
+      switch(max){
+        case r: h = (g-b)/d + (g<b?6:0); break;
+        case g: h = (b-r)/d + 2; break;
+        default: h = (r-g)/d + 4;
+      }
+      h/=6;
+    }
+    return [h,s,l];
+  }
+
+  function hslToRgb(h, s, l){
+    let r, g, b;
+    if (s === 0){ r = g = b = l; }
+    else{
+      const hue2rgb = (p,q,t) => {
+        if (t<0) t+=1; if (t>1) t-=1;
+        if (t<1/6) return p+(q-p)*6*t;
+        if (t<1/2) return q;
+        if (t<2/3) return p+(q-p)*(2/3-t)*6;
+        return p;
+      };
+      const q = l < 0.5 ? l*(1+s) : l+s-l*s;
+      const p = 2*l-q;
+      r = hue2rgb(p,q,h+1/3);
+      g = hue2rgb(p,q,h);
+      b = hue2rgb(p,q,h-1/3);
+    }
+    return [r*255, g*255, b*255];
+  }
+
+  // Applies a color-style filter to raw pixel colors before clustering.
+  // 'auto' passes colors through untouched (pure data-driven best-fit).
+  function applyStyleTransform(colors, style){
+    if (style === 'auto') return colors;
+    return colors.map(([r,g,b]) => {
+      if (style === 'original'){
+        // Subtle warmth and a touch of contrast — a clean, true-to-life look
+        return [
+          clampByte(128 + (r-128)*1.05 + 4),
+          clampByte(128 + (g-128)*1.05 + 1),
+          clampByte(128 + (b-128)*1.05 - 3)
+        ];
+      }
+      if (style === 'vintage'){
+        let [h,s,l] = rgbToHsl(r,g,b);
+        s *= 0.5;
+        l = 0.5 + (l-0.5)*0.85;
+        let [nr,ng,nb] = hslToRgb(h,s,l);
+        const tint = [112,84,52], amt = 0.18;
+        return [
+          clampByte(nr*(1-amt) + tint[0]*amt),
+          clampByte(ng*(1-amt) + tint[1]*amt),
+          clampByte(nb*(1-amt) + tint[2]*amt)
+        ];
+      }
+      if (style === 'popart'){
+        let [h,s,l] = rgbToHsl(r,g,b);
+        s = Math.min(1, s*1.8 + 0.15);
+        l = 0.5 + (l-0.5)*1.35;
+        const [nr,ng,nb] = hslToRgb(h,s,l);
+        return [clampByte(nr), clampByte(ng), clampByte(nb)];
+      }
+      return [r,g,b];
+    });
+  }
+
+  // Accurately downsamples the image to cols x rows by averaging every
+  // original pixel that falls inside each grid cell (a box filter), rather
+  // than relying on the browser's built-in scaling — this keeps small
+  // details (like facial tone variation) from being lost or blurred.
+  function boxDownsample(img, cols, rows){
+    const full = document.createElement('canvas');
+    full.width = img.width;
+    full.height = img.height;
+    const fctx = full.getContext('2d');
+    fctx.drawImage(img, 0, 0);
+    const src = fctx.getImageData(0, 0, img.width, img.height).data;
+    const cellW = img.width / cols;
+    const cellH = img.height / rows;
+    const colors = new Array(cols * rows);
+
+    for (let r=0; r<rows; r++){
+      const y0 = Math.floor(r*cellH);
+      const y1 = Math.max(y0+1, Math.floor((r+1)*cellH));
+      for (let c=0; c<cols; c++){
+        const x0 = Math.floor(c*cellW);
+        const x1 = Math.max(x0+1, Math.floor((c+1)*cellW));
+        let sr=0, sg=0, sb=0, count=0;
+        for (let y=y0; y<y1 && y<img.height; y++){
+          const rowStart = y*img.width*4;
+          for (let x=x0; x<x1 && x<img.width; x++){
+            const idx = rowStart + x*4;
+            sr += src[idx]; sg += src[idx+1]; sb += src[idx+2];
+            count++;
+          }
+        }
+        colors[r*cols+c] = count > 0 ? [sr/count, sg/count, sb/count] : [0,0,0];
+      }
+    }
+    return colors;
+  }
+
+  function buildPattern(){
+    const cols = parseInt(colsRange.value, 10);
+    let rows;
+    if (autoRowsCheckbox.checked){
+      const aspect = loadedImage.height / loadedImage.width;
+      rows = Math.min(400, Math.max(1, Math.round(cols * aspect)));
+    } else {
+      rows = Math.min(400, Math.max(1, parseInt(rowsRange.value, 10)));
+    }
+
+    const colors = boxDownsample(loadedImage, cols, rows);
+
+    let centroids, assignments, names;
+
+    if (paletteMode === 'fixed'){
+      const paletteRgb = CRAFT_PALETTE.map(p => p.rgb);
+      assignments = colors.map(c => {
+        let bestIdx = 0, bestDist = Infinity;
+        for (let j=0;j<paletteRgb.length;j++){
+          const d = dist2(c, paletteRgb[j]);
+          if (d < bestDist){ bestDist = d; bestIdx = j; }
+        }
+        return bestIdx;
+      });
+      centroids = paletteRgb;
+      names = CRAFT_PALETTE.map(p => p.name);
+    } else if (paletteMode === 'bw'){
+      const threshold = parseInt(bwThresholdRange.value, 10);
+      assignments = colors.map(([r,g,b]) => {
+        const luminance = (r*299 + g*587 + b*114) / 1000;
+        return luminance < threshold ? 0 : 1;
+      });
+      centroids = [[0,0,0],[255,255,255]];
+      names = ['Black','White'];
+    } else if (paletteMode === 'custom'){
+      const paletteRgb = customColorValues.map(hexToRgb);
+      assignments = colors.map(c => {
+        let bestIdx = 0, bestDist = Infinity;
+        for (let j=0;j<paletteRgb.length;j++){
+          const d = dist2(c, paletteRgb[j]);
+          if (d < bestDist){ bestDist = d; bestIdx = j; }
+        }
+        return bestIdx;
+      });
+      centroids = paletteRgb;
+      names = paletteRgb.map(() => null);
+    } else {
+      const workingColors = applyStyleTransform(colors, paletteMode);
+      const k = Math.min(parseInt(colorsRange.value, 10), workingColors.length);
+      const result = kmeans(workingColors, k, 8);
+      centroids = result.centroids;
+      assignments = result.assignments;
+      names = centroids.map(() => null);
+    }
+
+    const kUsed = centroids.length;
+    const counts = new Array(kUsed).fill(0);
+    assignments.forEach(a => counts[a]++);
+
+    // Keep only colors actually used, sorted by frequency
+    const usedIdx = counts.map((c,i) => i).filter(i => counts[i] > 0);
+    const order = usedIdx.sort((a,b) => counts[b]-counts[a]);
+    const remap = new Array(kUsed).fill(-1);
+    order.forEach((origIdx, newIdx) => remap[origIdx] = newIdx);
+    const sortedCentroids = order.map(i => centroids[i]);
+    const sortedCounts = order.map(i => counts[i]);
+    const sortedNames = order.map(i => names[i]);
+    const finalAssignments = assignments.map(a => remap[a]);
+    const symbols = order.map((_,i) => symbolFor(i));
+
+    lastResult = { cols, rows, assignments: finalAssignments, centroids: sortedCentroids, counts: sortedCounts, symbols, names: sortedNames };
+    showSymbols = false;
+    toggleViewBtn.textContent = 'Show block numbers';
+    renderCanvas();
+    renderLegend();
+    resultSection.style.display = 'block';
+    gridDim.textContent = cols + ' × ' + rows;
+    totalBlocks.textContent = (cols*rows).toLocaleString();
+    colorsUsed.textContent = sortedCentroids.length;
+    updateSheetBreakdown();
+    resultSection.scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+
+  function renderCanvas(){
+    if (!lastResult) return;
+    const { cols, rows, assignments, centroids, symbols } = lastResult;
+    outputCanvas.width = cols * CELL_SIZE;
+    outputCanvas.height = rows * CELL_SIZE;
+    const ctx = outputCanvas.getContext('2d');
+    ctx.font = '600 10px "IBM Plex Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (let r=0;r<rows;r++){
+      for (let c=0;c<cols;c++){
+        const idx = r*cols + c;
+        const colorIdx = assignments[idx];
+        const [cr, cg, cb] = centroids[colorIdx];
+        const x = c*CELL_SIZE, y = r*CELL_SIZE;
+        ctx.fillStyle = `rgb(${cr|0}, ${cg|0}, ${cb|0})`;
+        ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+        ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+        ctx.strokeRect(x + 0.5, y + 0.5, CELL_SIZE - 1, CELL_SIZE - 1);
+        if (showSymbols){
+          const brightness = (cr*299 + cg*587 + cb*114) / 1000;
+          ctx.fillStyle = brightness > 140 ? '#111' : '#fff';
+          ctx.fillText(symbols[colorIdx], x + CELL_SIZE/2, y + CELL_SIZE/2 + 1);
+        }
+      }
+    }
+  }
+
+  // Renders a blank assembly template: white cells, light grey color codes,
+  // no fill color — meant to be printed and used as the physical guide sheet.
+  function renderBlankTemplateDataURL(){
+    if (!lastResult) return null;
+    const { cols, rows, assignments, symbols } = lastResult;
+    const canvas = document.createElement('canvas');
+    canvas.width = cols * CELL_SIZE;
+    canvas.height = rows * CELL_SIZE;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.font = '600 10px "IBM Plex Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (let r=0;r<rows;r++){
+      for (let c=0;c<cols;c++){
+        const idx = r*cols + c;
+        const colorIdx = assignments[idx];
+        const x = c*CELL_SIZE, y = r*CELL_SIZE;
+        ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+        ctx.strokeRect(x + 0.5, y + 0.5, CELL_SIZE - 1, CELL_SIZE - 1);
+        ctx.fillStyle = '#555555';
+        ctx.fillText(symbols[colorIdx], x + CELL_SIZE/2, y + CELL_SIZE/2 + 1);
+      }
+    }
+    return canvas.toDataURL('image/png');
+  }
+
+  // --- Sheet-splitting (poster tiling) helpers ---
+
+  function getSheetGrid(){
+    const sheetCols = clamp(parseInt(document.getElementById('sheetColsInput').value, 10) || 1, 1, 4);
+    const sheetRows = clamp(parseInt(document.getElementById('sheetRowsInput').value, 10) || 1, 1, 4);
+    return { sheetCols, sheetRows };
+  }
+
+  // Returns the block column/row range each sheet tile covers.
+  function getTileRanges(sheetCols, sheetRows){
+    const { cols, rows } = lastResult;
+    const blocksPerSheetCol = Math.ceil(cols / sheetCols);
+    const blocksPerSheetRow = Math.ceil(rows / sheetRows);
+    const tiles = [];
+    for (let sr=0; sr<sheetRows; sr++){
+      for (let sc=0; sc<sheetCols; sc++){
+        const colStart = sc*blocksPerSheetCol;
+        const colEnd = Math.min(cols, colStart+blocksPerSheetCol);
+        const rowStart = sr*blocksPerSheetRow;
+        const rowEnd = Math.min(rows, rowStart+blocksPerSheetRow);
+        if (colEnd <= colStart || rowEnd <= rowStart) continue;
+        tiles.push({ sr, sc, colStart, colEnd, rowStart, rowEnd });
+      }
+    }
+    return tiles;
+  }
+
+  function updateSheetBreakdown(){
+    const el = document.getElementById('sheetBreakdownText');
+    const listEl = document.getElementById('sheetDownloadList');
+    if (!lastResult){ el.textContent = ''; listEl.innerHTML = ''; return; }
+    const { sheetCols, sheetRows } = getSheetGrid();
+    const total = sheetCols*sheetRows;
+    if (total === 1){
+      el.textContent = 'Total sheets: 1 — join not needed at 1×1';
+      listEl.innerHTML = '';
+      return;
+    }
+    const { cols, rows } = lastResult;
+    const blocksPerSheetCol = Math.ceil(cols/sheetCols);
+    const blocksPerSheetRow = Math.ceil(rows/sheetRows);
+    el.textContent = `Total sheets: ${total} — each sheet up to ${blocksPerSheetCol} blocks wide × ${blocksPerSheetRow} blocks tall`;
+
+    const tiles = getTileRanges(sheetCols, sheetRows);
+    listEl.innerHTML = '';
+
+    const sheetPageData = (t, i) => {
+      const w = t.colEnd - t.colStart, h = t.rowEnd - t.rowStart;
+      return {
+        title: `Sheet ${i+1} of ${tiles.length} — Row ${t.sr+1}, Column ${t.sc+1}`,
+        meta: `Covers columns ${t.colStart+1}-${t.colEnd} (${w} blocks wide) x rows ${t.rowStart+1}-${t.rowEnd} (${h} blocks tall)  ·  ${(w*h).toLocaleString()} blocks on this sheet`,
+        img: renderTileBlankDataURL(t.colStart, t.colEnd, t.rowStart, t.rowEnd)
+      };
+    };
+
+    tiles.forEach((t, i) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'secondary';
+      btn.textContent = `Sheet ${i+1} (R${t.sr+1}C${t.sc+1}) — PDF`;
+      btn.addEventListener('click', () => {
+        buildAndSavePdf([sheetPageData(t, i)], `mosaic-sheet-${i+1}-R${t.sr+1}C${t.sc+1}.pdf`, { plain: !wantsLabels() });
+      });
+      listEl.appendChild(btn);
+    });
+
+    if (tiles.length > 1){
+      const allPdfBtn = document.createElement('button');
+      allPdfBtn.type = 'button';
+      allPdfBtn.className = 'secondary';
+      allPdfBtn.textContent = 'All sheets — PDF';
+      allPdfBtn.addEventListener('click', () => {
+        buildAndSavePdf(tiles.map(sheetPageData), 'mosaic-all-sheets.pdf', { plain: !wantsLabels() });
+      });
+      listEl.appendChild(allPdfBtn);
+
+      const allWordBtn = document.createElement('button');
+      allWordBtn.type = 'button';
+      allWordBtn.className = 'secondary';
+      allWordBtn.textContent = 'All sheets — Word';
+      allWordBtn.addEventListener('click', () => {
+        buildAndSaveWord(tiles.map(sheetPageData), 'mosaic-all-sheets.doc', { plain: !wantsLabels() });
+      });
+      listEl.appendChild(allWordBtn);
+    }
+  }
+  document.getElementById('sheetColsInput').addEventListener('input', updateSheetBreakdown);
+  document.getElementById('sheetRowsInput').addEventListener('input', updateSheetBreakdown);
+
+  // Renders just one tile region as a blank (grey-code) template, for printing on its own sheet.
+  function renderTileBlankDataURL(colStart, colEnd, rowStart, rowEnd){
+    const { cols, assignments, symbols } = lastResult;
+    const w = colEnd-colStart, h = rowEnd-rowStart;
+    const canvas = document.createElement('canvas');
+    canvas.width = w*CELL_SIZE;
+    canvas.height = h*CELL_SIZE;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.font = '600 10px "IBM Plex Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (let r=rowStart; r<rowEnd; r++){
+      for (let c=colStart; c<colEnd; c++){
+        const idx = r*cols + c;
+        const colorIdx = assignments[idx];
+        const x = (c-colStart)*CELL_SIZE, y = (r-rowStart)*CELL_SIZE;
+        ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+        ctx.strokeRect(x + 0.5, y + 0.5, CELL_SIZE - 1, CELL_SIZE - 1);
+        ctx.fillStyle = '#555555';
+        ctx.fillText(symbols[colorIdx], x + CELL_SIZE/2, y + CELL_SIZE/2 + 1);
+      }
+    }
+    return canvas.toDataURL('image/png');
+  }
+
+  // Small colored "map" of the whole pattern with sheet boundaries drawn on
+  // top, optionally highlighting one tile — helps the person see where each
+  // printed sheet belongs before they start joining them.
+  function renderSheetMapDataURL(sheetCols, sheetRows, highlightSc, highlightSr){
+    const { cols, rows, assignments, centroids } = lastResult;
+    const T = 3; // px per block in the thumbnail
+    const canvas = document.createElement('canvas');
+    canvas.width = cols*T;
+    canvas.height = rows*T;
+    const ctx = canvas.getContext('2d');
+    for (let r=0;r<rows;r++){
+      for (let c=0;c<cols;c++){
+        const idx = r*cols+c;
+        const [cr,cg,cb] = centroids[assignments[idx]];
+        ctx.fillStyle = `rgb(${cr|0},${cg|0},${cb|0})`;
+        ctx.fillRect(c*T, r*T, T, T);
+      }
+    }
+    const blocksPerSheetCol = Math.ceil(cols/sheetCols);
+    const blocksPerSheetRow = Math.ceil(rows/sheetRows);
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.lineWidth = 1;
+    for (let sc=1; sc<sheetCols; sc++){
+      const x = sc*blocksPerSheetCol*T;
+      ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke();
+    }
+    for (let sr=1; sr<sheetRows; sr++){
+      const y = sr*blocksPerSheetRow*T;
+      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke();
+    }
+    if (highlightSc != null && highlightSr != null){
+      const hx = highlightSc*blocksPerSheetCol*T;
+      const hy = highlightSr*blocksPerSheetRow*T;
+      const hw = Math.min(blocksPerSheetCol, cols-highlightSc*blocksPerSheetCol)*T;
+      const hh = Math.min(blocksPerSheetRow, rows-highlightSr*blocksPerSheetRow)*T;
+      ctx.strokeStyle = '#ff2d55';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(hx+1.5, hy+1.5, Math.max(1,hw-3), Math.max(1,hh-3));
+    }
+    return canvas.toDataURL('image/png');
+  }
+
+  function renderLegend(){
+    if (!lastResult) return;
+    const { centroids, counts, symbols, names } = lastResult;
+    legendEl.innerHTML = '';
+    centroids.forEach((c, i) => {
+      const item = document.createElement('div');
+      item.className = 'legend-item';
+      const buffered = Math.ceil(counts[i] * 1.4);
+      const label = names[i] ? `${symbols[i]} · ${names[i]}` : symbols[i];
+      item.innerHTML = `
+        <div class="swatch" style="background: rgb(${c[0]|0},${c[1]|0},${c[2]|0})"></div>
+        <span class="sym">${label}</span>
+        <span class="cnt">${counts[i]} <span style="color:var(--muted)">(+buffer ${buffered})</span></span>
+      `;
+      legendEl.appendChild(item);
+    });
+  }
+
+  toggleViewBtn.addEventListener('click', () => {
+    showSymbols = !showSymbols;
+    toggleViewBtn.textContent = showSymbols ? 'Hide block numbers' : 'Show block numbers';
+    renderCanvas();
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    if (!lastResult) return;
+    const link = document.createElement('a');
+    link.download = 'mosaic-pattern.png';
+    link.href = outputCanvas.toDataURL('image/png');
+    link.click();
+  });
+
+  let paperSize = 'A4';
+  const paperSizeSeg = document.getElementById('paperSizeSeg');
+  paperSizeSeg.addEventListener('click', (e) => {
+    const btn = e.target.closest('.seg-btn');
+    if (!btn) return;
+    paperSize = btn.dataset.size;
+    [...paperSizeSeg.children].forEach(b => b.classList.toggle('active', b === btn));
+  });
+
+  // --- PDF export (via jsPDF) ---
+  function getPdfConstructor(){
+    return (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : null;
+  }
+
+  // pages: [{ title, meta, img }]. Lays each page out on the selected paper size.
+  // opts.plain: when true, skips all title/meta text and lets the grid image
+  // fill almost the entire page — a clean printout ready to color directly.
+  function buildAndSavePdf(pages, filename, opts={}){
+    const plain = !!opts.plain;
+    const JsPDF = getPdfConstructor();
+    if (!JsPDF){
+      alert('The PDF library did not load — check your internet connection and try again.');
+      return;
+    }
+    const format = paperSize === 'A3' ? 'a3' : 'a4';
+    const doc = new JsPDF({ unit: 'mm', format, orientation: 'portrait' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = plain ? 0 : 10;
+    pages.forEach((p, idx) => {
+      if (idx > 0) doc.addPage();
+      let imgTop = margin;
+      const maxW = pageWidth - 2*margin;
+      if (!plain){
+        doc.setFont('courier', 'bold');
+        doc.setFontSize(13);
+        doc.text(p.title, margin, margin + 4);
+        doc.setFont('courier', 'normal');
+        doc.setFontSize(9);
+        const metaLines = p.meta ? doc.splitTextToSize(p.meta, maxW) : [];
+        if (metaLines.length) doc.text(metaLines, margin, margin + 10);
+        imgTop = margin + 10 + metaLines.length*4 + 4;
+      }
+      const imgProps = doc.getImageProperties(p.img);
+      const maxH = pageHeight - imgTop - margin;
+      let w, h, x, y;
+      if (plain){
+        // Fill the entire page edge-to-edge, no left/right or top/bottom gaps.
+        w = maxW; h = maxH; x = 0; y = imgTop;
+      } else {
+        w = maxW; h = (imgProps.height/imgProps.width) * w;
+        if (h > maxH){ h = maxH; w = (imgProps.width/imgProps.height) * h; }
+        x = margin + (maxW - w)/2;
+        y = imgTop;
+      }
+      doc.addImage(p.img, 'PNG', x, y, w, h);
+    });
+    doc.save(filename);
+  }
+
+  // --- Word export (HTML-based .doc, opens natively in Word) ---
+  function buildAndSaveWord(pages, filename, opts={}){
+    const plain = !!opts.plain;
+    const pgW = paperSize === 'A3' ? 297 : 210;
+    const pgH = paperSize === 'A3' ? 420 : 297;
+    const pageCss = `@page { size: ${pgW}mm ${pgH}mm; margin: ${plain ? '0mm' : '15mm'}; }`;
+    const imgStyle = plain
+      ? `width:${pgW}mm; height:${pgH}mm; object-fit:fill; display:block; margin:0;`
+      : 'width:100%; max-width:100%;';
+    const bodyHtml = pages.map((p, idx) => `
+      <div style="${idx>0 ? 'page-break-before:always;' : ''} text-align:center; margin:0; padding:0;">
+        ${plain ? '' : `
+          <h2 style="font-family:'Courier New',monospace; font-size:14pt; margin-bottom:4px; text-align:left;">${p.title}</h2>
+          <p style="font-family:'Courier New',monospace; font-size:9pt; color:#555; margin-top:0; text-align:left;">${(p.meta||'').replace(/\n/g,'<br>')}</p>
+        `}
+        <img src="${p.img}" style="${imgStyle}">
+      </div>
+    `).join('');
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+      <head><meta charset="utf-8"><style>${pageCss} body{font-family:'Courier New',monospace; margin:0;}</style></head>
+      <body>${bodyHtml}</body></html>`;
+    const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 2000);
+  }
+
+  function wantsLabels(){
+    return document.getElementById('includeLabelsCheckbox').checked;
+  }
+
+  document.getElementById('downloadBlankPdfBtn').addEventListener('click', () => {
+    if (!lastResult) return;
+    const { cols, rows } = lastResult;
+    buildAndSavePdf(
+      [{ title: 'Blank assembly template', meta: `Grid: ${cols} x ${rows} blocks`, img: renderBlankTemplateDataURL() }],
+      'mosaic-blank-template.pdf',
+      { plain: !wantsLabels() }
+    );
+  });
+
+  document.getElementById('downloadBlankWordBtn').addEventListener('click', () => {
+    if (!lastResult) return;
+    const { cols, rows } = lastResult;
+    buildAndSaveWord(
+      [{ title: 'Blank assembly template', meta: `Grid: ${cols} x ${rows} blocks`, img: renderBlankTemplateDataURL() }],
+      'mosaic-blank-template.doc',
+      { plain: !wantsLabels() }
+    );
+  });
+
+  const printBtn = document.getElementById('printBtn');
+  printBtn.addEventListener('click', () => {
+    if (!lastResult) return;
+    const prevShowSymbols = showSymbols;
+    showSymbols = true;
+    renderCanvas();
+    const imgData = outputCanvas.toDataURL('image/png');
+    showSymbols = prevShowSymbols;
+    renderCanvas();
+
+    const { cols, rows, centroids, counts, symbols, names } = lastResult;
+    const totalCells = cols * rows;
+    const pageWidthMm = paperSize === 'A3' ? 297 : 210;
+
+    const { sheetCols, sheetRows } = getSheetGrid();
+    const totalSheets = sheetCols * sheetRows;
+    const tiles = getTileRanges(sheetCols, sheetRows);
+
+    const legendRows = centroids.map((c, i) => {
+      const buffered = Math.ceil(counts[i] * 1.4);
+      const label = names[i] ? names[i] : ('Color ' + symbols[i]);
+      return `<tr>
+        <td class="sw"><span style="background: rgb(${c[0]|0},${c[1]|0},${c[2]|0})"></span></td>
+        <td class="symcol">${symbols[i]}</td>
+        <td>${label}</td>
+        <td>${counts[i]}</td>
+        <td>${buffered}</td>
+      </tr>`;
+    }).join('');
+
+    let sheetPagesHtml = '';
+    if (totalSheets > 1){
+      const mapData = renderSheetMapDataURL(sheetCols, sheetRows, null, null);
+      sheetPagesHtml += `
+        <h2 class="page-break">Sheet map — how the ${totalSheets} sheets fit together</h2>
+        <div class="meta">Layout: ${sheetCols} across × ${sheetRows} down. Print each sheet below, then join edge-to-edge in this arrangement.</div>
+        <img src="${mapData}" alt="sheet map" style="max-width: 60%;">
+      `;
+      tiles.forEach((t, i) => {
+        const w = t.colEnd - t.colStart, h = t.rowEnd - t.rowStart;
+        const tileMap = renderSheetMapDataURL(sheetCols, sheetRows, t.sc, t.sr);
+        const tileBlank = renderTileBlankDataURL(t.colStart, t.colEnd, t.rowStart, t.rowEnd);
+        sheetPagesHtml += `
+          <h2 class="page-break">Sheet ${i+1} of ${totalSheets} — Row ${t.sr+1}, Column ${t.sc+1}</h2>
+          <div class="meta">
+            Covers columns ${t.colStart+1}–${t.colEnd} (${w} blocks wide) ×
+            rows ${t.rowStart+1}–${t.rowEnd} (${h} blocks tall) &nbsp;·&nbsp;
+            ${(w*h).toLocaleString()} blocks on this sheet
+          </div>
+          <img src="${tileMap}" alt="position in overall map" style="max-width: 35%; float:right; margin-left:12px;">
+          <img src="${tileBlank}" alt="sheet ${i+1} blank template">
+          <div style="clear:both;"></div>
+        `;
+      });
+    }
+
+    const win = window.open('', '_blank');
+    win.document.write(`<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Mosaic pattern — instruction sheet</title>
+<style>
+  @page{ size: ${paperSize}; margin: 10mm; }
+  body{ font-family: 'IBM Plex Mono', 'Courier New', monospace; color:#111; margin: 24px; max-width: ${pageWidthMm}mm; }
+  h1{ font-size: 18px; margin-bottom: 4px; }
+  h2{ font-size: 14px; margin: 28px 0 8px; }
+  .meta{ font-size: 12px; color:#555; margin-bottom: 18px; }
+  img{ max-width: 100%; image-rendering: pixelated; border: 1px solid #ccc; }
+  .page-break{ page-break-before: always; }
+  table{ border-collapse: collapse; width: 100%; margin-top: 18px; font-size: 12px; }
+  th, td{ border: 1px solid #ccc; padding: 5px 8px; text-align: left; }
+  td.sw span{ display:block; width:16px; height:16px; border:1px solid #999; }
+  td.symcol{ font-weight:600; }
+  @media print{
+    .no-print{ display:none; }
+    body{ margin: 10mm; max-width: none; }
+  }
+</style>
+</head>
+<body>
+  <button class="no-print" onclick="window.print()" style="margin-bottom:14px;padding:8px 14px;">Print this page</button>
+  <h1>Mosaic pattern — instruction sheet</h1>
+  <div class="meta">Grid: ${cols} × ${rows} blocks &nbsp;·&nbsp; Total blocks: ${totalCells.toLocaleString()} &nbsp;·&nbsp; Colors: ${centroids.length} &nbsp;·&nbsp; Paper: ${paperSize}${totalSheets>1 ? ` &nbsp;·&nbsp; Split into ${totalSheets} sheets (${sheetCols}×${sheetRows})` : ''}</div>
+
+  <h2>Reference — full color pattern</h2>
+  <img src="${imgData}" alt="colored pattern">
+
+  ${totalSheets === 1 ? `
+  <h2 class="page-break">Blank template — print and assemble on this</h2>
+  <img src="${renderBlankTemplateDataURL()}" alt="blank template">
+  ` : sheetPagesHtml}
+
+  <h2 class="page-break">Color legend &amp; block counts</h2>
+  <table>
+    <thead><tr><th>Swatch</th><th>Code</th><th>Color</th><th>Blocks needed</th><th>Buy with 40% buffer</th></tr></thead>
+    <tbody>${legendRows}</tbody>
+  </table>
+</body></html>`);
+    win.document.close();
+  });
+})();
+</script>
+</body>
+</html>
